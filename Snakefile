@@ -101,16 +101,24 @@ rule genmap_bin1Mb:
         wig = MAP_WIG
     shell:
         """
-        # make 1 Mb windows per chromosome
-        bedtools makewindows -g <(cut -f1,2 {input.bed} | sort -k1,1 -k2,2n \
-                                 | awk '{{max[$1]>$2?max[$1]:max[$1]=$2}} END{{for(c in max) print c"\\t"max[c]}}') \
-                             -w 1000000 > windows.bed
+        # 1) keep only canonical chroms and grab their max coordinate
+        grep -E '^(1[0-9]|[1-9]|X|Y)\t' {input.bed} \
+        | sort -k1,1 -k2,2n \
+        | awk '{{len[$1]<$3?len[$1]=$3:1}} END{{for(c in len) print c"\\t"len[c]}}' \
+        | sort -k1,1 > chrom.sizes
 
-        # average mappability in each window
-        bedtools map -a windows.bed -b {input.bed} -c 4 -o mean \
+        # 2) 1 Mb windows
+        bedtools makewindows -g chrom.sizes -w 1000000 > windows.bed
+
+        # 3) sorted, filtered bedGraph
+        grep -E '^(1[0-9]|[1-9]|X|Y)\t' {input.bed} | sort -k1,1 -k2,2n > bedgraph.sorted
+
+        # 4) mean mappability per window → WIG
+        bedtools map -a windows.bed -b bedgraph.sorted -c 4 -o mean \
         | awk 'BEGIN{{OFS="\\t"}} {{print $1,$2,$3,$4=="."?0:$4}}' \
         | awk 'BEGIN{{chrom=""}} {{if($1!=chrom){{print "fixedStep chrom="$1" start=1 step=1000000"; chrom=$1}} print $4}}' \
         > {output.wig}
 
-        rm windows.bed
+        rm windows.bed bedgraph.sorted chrom.sizes
         """
+

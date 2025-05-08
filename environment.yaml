@@ -1,0 +1,10 @@
+name: ichorCNA_2025_05_07
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - samtools
+  - snakemake
+  - genmap
+

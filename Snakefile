@@ -1,4 +1,3 @@
-# Define all sample IDs
 SAMPLES = [f"SHi26-{i}" for i in range(1, 13)]
 
 REF_FASTA = "/mnt/speedy/aboylan/ctDNA_2025/ref_genome_mm39/mm39.simple.fa"
@@ -10,7 +9,6 @@ GENMAP_RAW = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/
 
 MAP_WIG = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/map_mm39_1000kb.wig"
 
-# Master rule: build all .wig files
 rule all:
     input:
         expand("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/{sample}.wig", sample=SAMPLES),
@@ -91,7 +89,7 @@ rule genmap_calculate:
             -I {input.idx_dir} \
             -O $(dirname {output.bed}) \
             -T {threads} \
-            -bg                    # ← use the short flag
+            -bg                 
 
         mv $(dirname {output.bed})/*.bedgraph {output.bed}
         """

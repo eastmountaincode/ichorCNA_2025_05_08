@@ -114,9 +114,9 @@ rule make_windows_1Mb:
     shell:
         """
         cut -f1,3 {input.bed} \
-          | sort -k1,1 -k2,2n \
+          | sort -k1,1 \
           | awk '{{len[$1]<$2?len[$1]=$2:1}} END{{for(c in len) print c"\\t"len[c]}}' \
-          | sort -k1,1 > chrom.sizes
+          > chrom.sizes
 
         bedtools makewindows -g chrom.sizes -w 1000000 > {output.bed}
         rm chrom.sizes

@@ -6,8 +6,7 @@ CENTROMERE_TXT = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/mm39_ce
 
 GENMAP_IDX = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_mm39"
 GENMAP_RAW = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.bedgraph"
-
-MAP_WIG = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/map_mm39_1000kb.wig"
+GENMAP_FILTERED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.filtered.bedgraph"
 
 rule all:
     input:
@@ -16,7 +15,7 @@ rule all:
         CENTROMERE_TXT,
         GENMAP_IDX,
         GENMAP_RAW,
-        MAP_WIG
+        GENMAP_FILTERED
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -93,31 +92,13 @@ rule genmap_calculate:
         mv $(dirname {output.bed})/*.bedgraph {output.bed}
         """
 
-rule genmap_bin1Mb:
+rule genmap_filter_canonical:
     input:
         bed = GENMAP_RAW
     output:
-        wig = MAP_WIG
+        bed = GENMAP_FILTERED
     shell:
         """
-        # 1) keep only canonical chroms and grab their max coordinate
-        grep -E '^(1[0-9]|[1-9]|X|Y)\t' {input.bed} \
-        | sort -k1,1 -k2,2n \
-        | awk '{{len[$1]<$3?len[$1]=$3:1}} END{{for(c in len) print c"\\t"len[c]}}' \
-        | sort -k1,1 > chrom.sizes
-
-        # 2) 1 Mb windows
-        bedtools makewindows -g chrom.sizes -w 1000000 > windows.bed
-
-        # 3) sorted, filtered bedGraph
-        grep -E '^(1[0-9]|[1-9]|X|Y)\t' {input.bed} | sort -k1,1 -k2,2n > bedgraph.sorted
-
-        # 4) mean mappability per window → WIG
-        bedtools map -a windows.bed -b bedgraph.sorted -c 4 -o mean \
-        | awk 'BEGIN{{OFS="\\t"}} {{print $1,$2,$3,$4=="."?0:$4}}' \
-        | awk 'BEGIN{{chrom=""}} {{if($1!=chrom){{print "fixedStep chrom="$1" start=1 step=1000000"; chrom=$1}} print $4}}' \
-        > {output.wig}
-
-        rm windows.bed bedgraph.sorted chrom.sizes
+        grep -E '^(1[0-9]|[1-9]|X|Y)[[:space:]]' {input.bed} \
+        | sort -k1,1 -k2,2n > {output.bed}
         """
-

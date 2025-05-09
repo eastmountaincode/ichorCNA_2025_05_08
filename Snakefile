@@ -7,6 +7,8 @@ CENTROMERE_TXT = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/mm39_ce
 GENMAP_IDX = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_mm39"
 GENMAP_RAW = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.bedgraph"
 GENMAP_FILTERED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.filtered.bedgraph"
+WINDOWS_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/windows_1Mb.bed"
+
 
 rule all:
     input:
@@ -15,7 +17,8 @@ rule all:
         CENTROMERE_TXT,
         GENMAP_IDX,
         GENMAP_RAW,
-        GENMAP_FILTERED
+        GENMAP_FILTERED,
+        WINDOWS_BED
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -102,3 +105,22 @@ rule genmap_filter_canonical:
         grep -E '^(1[0-9]|[1-9]|X|Y)[[:space:]]' {input.bed} \
         | sort -k1,1 -k2,2n > {output.bed}
         """
+
+rule make_windows_1Mb:
+    input:
+        bed = GENMAP_FILTERED
+    output:
+        bed = WINDOWS_BED
+    shell:
+        """
+        cut -f1,3 {input.bed} \
+          | sort -k1,1 -k2,2n \
+          | awk '{{len[$1]<$2?len[$1]=$2:1}} END{{for(c in len) print c"\\t"len[c]}}' \
+          | sort -k1,1 > chrom.sizes
+
+        bedtools makewindows -g chrom.sizes -w 1000000 > {output.bed}
+        rm chrom.sizes
+        """
+
+
+

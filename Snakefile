@@ -8,6 +8,8 @@ GENMAP_IDX = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_mm39
 GENMAP_RAW = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.bedgraph"
 GENMAP_FILTERED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.filtered.bedgraph"
 WINDOWS_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/windows_1Mb.bed"
+BINNED_MAP_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/mappability_1Mb.bed"
+
 
 
 rule all:
@@ -18,7 +20,8 @@ rule all:
         GENMAP_IDX,
         GENMAP_RAW,
         GENMAP_FILTERED,
-        WINDOWS_BED
+        WINDOWS_BED,
+        BINNED_MAP_BED
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -114,13 +117,30 @@ rule make_windows_1Mb:
     shell:
         """
         cut -f1,3 {input.bed} \
-          | sort -k1,1 \
           | awk '{{len[$1]<$2?len[$1]=$2:1}} END{{for(c in len) print c"\\t"len[c]}}' \
-          > chrom.sizes
+          | awk 'BEGIN{{OFS="\\t"}}
+                 $1 ~ /^[0-9]+$/ {{printf "%03d\\t%s\\n", $1, $0}}
+                 $1 == "X"       {{print "100\\t" $0}}
+                 $1 == "Y"       {{print "101\\t" $0}}' \
+          | sort -k1,1n | cut -f2- > chrom.sizes
 
         bedtools makewindows -g chrom.sizes -w 1000000 > {output.bed}
         rm chrom.sizes
         """
+
+rule bin_mappability_1Mb:
+    input:
+        windows = WINDOWS_BED,
+        bedgraph = GENMAP_FILTERED
+    output:
+        bed = BINNED_MAP_BED
+    shell:
+        """
+        bedtools map -a {input.windows} -b {input.bedgraph} -c 4 -o mean \
+          | awk 'BEGIN{{OFS="\\t"}} {{print $1,$2,$3,($4=="."?0:$4)}}' \
+          > {output.bed}
+        """
+
 
 
 

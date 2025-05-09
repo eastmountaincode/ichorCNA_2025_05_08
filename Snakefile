@@ -57,7 +57,6 @@ rule get_centromeres:
         curl -s "http://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/gap.txt.gz" \
           | gunzip -c \
           | awk -F'\\t' '$8=="centromere" {{print $2"\\t"$3"\\t"$4"\\tcentromere"}}' > {output.txt}
-        echo -e "Y\t110000\t3000000\tcentromere" >> {output.txt}
         sed -i 's/^chr//' {output.txt}
         """
 

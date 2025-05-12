@@ -244,31 +244,38 @@ rule run_ichorCNA:
     output:
         dir = directory("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out/{sample}")
     params:
-        normal = lambda wc: NORMAL_GRID[SAMPLE2GROUP[wc.sample]],
-        outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
-        id     = lambda wc: wc.sample,
-        group  = lambda wc: SAMPLE2GROUP[wc.sample],
-    shell:
-        r"""
-        mkdir -p {params.outdir}
+    	normal = lambda wc: NORMAL_GRID[SAMPLE2GROUP[wc.sample]],
+    	outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
+    	id     = lambda wc: wc.sample,
+    	group  = lambda wc: SAMPLE2GROUP[wc.sample],
+    	ploidy = lambda wc: '"c(2)"' if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(2,3)"',
+    	est_normal = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
+    	est_ploidy = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
+    	est_sc = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
+    	sc_states = lambda wc: "NULL" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(1,3)"'
 
-        Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/runIchorCNA.R \
-          --id          {params.id} \
-          --WIG         {input.wig} \
-          --ploidy      {'"c(2)"' if params.group in ['group3', 'group4'] else '"c(2,3)"'} \
-          --normal      "{params.normal}" \
-          --maxCN       7 \
-          --gcWig       {input.gc} \
-          --centromere  {input.cen} \
-          --normalPanel {input.pon} \
-          --includeHOMD False \
-          --chrs        'c(1:19,"X")' \
-          --chrTrain    'c(1:19)' \
-          --estimateNormal       True \
-          --estimatePloidy       True \
-          --estimateScPrevalence True \
-          --scStates    "c(1,3)" \
-          --txnE        0.9999 \
-          --txnStrength 10000 \
-          --outDir      {params.outdir}
-        """
+    shell:
+    	r"""
+    	mkdir -p {params.outdir}
+
+    	Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/runIchorCNA.R \
+      	--id          {params.id} \
+      	--WIG         {input.wig} \
+      	--ploidy      {params.ploidy} \
+      	--normal      "{params.normal}" \
+      	--maxCN       7 \
+      	--gcWig       {input.gc} \
+      	--centromere  {input.cen} \
+      	--normalPanel {input.pon} \
+      	--includeHOMD False \
+      	--chrs        'c(1:19,"X")' \
+      	--chrTrain    'c(1:19)' \
+      	--estimateNormal       {params.est_normal} \
+      	--estimatePloidy       {params.est_ploidy} \
+      	--estimateScPrevalence {params.est_sc} \
+      	--scStates    {params.sc_states} \
+      	--txnE        0.99999 \
+      	--txnStrength 100000 \
+      	--outDir      {params.outdir}
+    	"""
+

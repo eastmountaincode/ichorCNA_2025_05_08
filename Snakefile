@@ -268,7 +268,7 @@ rule run_ichorCNA:
       	--centromere  {input.cen} \
       	--normalPanel {input.pon} \
       	--includeHOMD False \
-      	--chrs        'c(1:19,"X")' \
+      	--chrs        'c(1:19)' \
       	--chrTrain    'c(1:19)' \
       	--estimateNormal       {params.est_normal} \
       	--estimatePloidy       {params.est_ploidy} \

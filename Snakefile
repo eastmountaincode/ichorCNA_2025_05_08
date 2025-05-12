@@ -18,6 +18,35 @@ PON_BASE  = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/pon_output/ichor
 PON_RDS   = PON_BASE + "_median.rds"
 PON_TXT   = PON_BASE + "_median.txt"
 
+SAMPLE2GROUP = {
+    # gDNA, untreated            (group1)
+    "SHi26-1":  "group1",
+    "SHi26-2":  "group1",
+    # gDNA‑like cfDNA, +drug     (group2)
+    "SHi26-3":  "group2",
+    "SHi26-4":  "group2",
+    # healthy plasma, ±drug      (groups3 & 4)
+    "SHi26-5":  "group3",
+    "SHi26-6":  "group4",
+    # tumour plasma, vehicle     (group5)
+    "SHi26-7":  "group5",
+    "SHi26-8":  "group5",
+    # tumour plasma, +drug       (group6)
+    "SHi26-9":  "group6",
+    "SHi26-10": "group6",
+    "SHi26-11": "group6",
+    "SHi26-12": "group6",
+}
+
+NORMAL_GRID = {
+    "group1": 'c(0.02,0.05,0.1)',
+    "group2": 'c(0.02,0.05,0.1)',
+    "group3": 'c(0.9,0.95,0.99)',
+    "group4": 'c(0.9,0.95,0.99)',
+    "group5": 'c(seq(0.2,0.95,0.05))',
+    "group6": 'c(seq(0.2,0.95,0.05))',
+}
+
 rule all:
     input:
         expand("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/{sample}.wig", sample=SAMPLES),
@@ -31,7 +60,9 @@ rule all:
         MAP_WIG,
         NORMAL_WIG_LIST,
         PON_RDS,
-        PON_TXT
+        PON_TXT,
+        expand("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out/{sample}", sample=SAMPLES)
+
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -202,4 +233,42 @@ rule create_pon:
           --genomeStyle NCBI \
           --chrs        'c(1:19,"X","Y")' \
           --chrNormalize 'c(1:19)'
+        """
+
+rule run_ichorCNA:
+    input:
+        wig = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/{sample}.wig",
+        pon = PON_RDS,
+        gc  = GC_WIG,
+        cen = CENTROMERE_TXT
+    output:
+        dir = directory("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out/{sample}")
+    params:
+        normal = lambda wc: NORMAL_GRID[SAMPLE2GROUP[wc.sample]],
+        outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
+        id     = lambda wc: wc.sample
+    threads: 80
+    shell:
+        r"""
+        mkdir -p {params.outdir}
+
+        Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/runIchorCNA.R \
+          --id          {params.id} \
+          --WIG         {input.wig} \
+          --ploidy      "c(2,3)" \
+          --normal      "{params.normal}" \
+          --maxCN       7 \
+          --gcWig       {input.gc} \
+          --centromere  {input.cen} \
+          --normalPanel {input.pon} \
+          --includeHOMD False \
+          --chrs        'c(1:19,"X")' \
+          --chrTrain    'c(1:19)' \
+          --estimateNormal       True \
+          --estimatePloidy       True \
+          --estimateScPrevalence True \
+          --scStates    "c(1,3)" \
+          --txnE        0.9999 \
+          --txnStrength 10000 \
+          --outDir      {params.outdir}
         """

@@ -13,7 +13,10 @@ BINNED_MAP_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_
 MAP_WIG = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/map_mm39_1000kb.wig"
 
 NORMAL_WIG_LIST = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/normal_wig_files.txt"
-PON_OUT = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/pon_output/ichorCNA_PON.rds"
+
+PON_BASE  = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/pon_output/ichorCNA_PON"
+PON_RDS   = PON_BASE + "_median.rds"
+PON_TXT   = PON_BASE + "_median.txt"
 
 rule all:
     input:
@@ -27,7 +30,8 @@ rule all:
         BINNED_MAP_BED,
         MAP_WIG,
         NORMAL_WIG_LIST,
-        PON_OUT
+        PON_RDS,
+        PON_TXT
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -181,22 +185,21 @@ rule create_pon:
     input:
         filelist   = NORMAL_WIG_LIST,
         gcwig      = GC_WIG,
-        mapwig     = MAP_WIG,
         centromere = CENTROMERE_TXT
     output:
-        pon = PON_OUT
+        rds = PON_RDS,
+        txt = PON_TXT
     shell:
         """
-        mkdir -p $(dirname {output.pon})
+        mkdir -p $(dirname {output.rds})
 
         Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/createPanelOfNormals.R \
           --filelist    {input.filelist} \
           --gcWig       {input.gcwig} \
           --centromere  {input.centromere} \
-          --outfile     {output.pon} \
+          --outfile     {PON_BASE} \
+          --method      median \
           --genomeStyle NCBI \
-          --method median \
-          --chrs 'c(1:19,"X","Y")' \
+          --chrs        'c(1:19,"X","Y")' \
           --chrNormalize 'c(1:19)'
         """
-

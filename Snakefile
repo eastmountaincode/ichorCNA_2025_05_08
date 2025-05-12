@@ -246,7 +246,8 @@ rule run_ichorCNA:
     params:
         normal = lambda wc: NORMAL_GRID[SAMPLE2GROUP[wc.sample]],
         outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
-        id     = lambda wc: wc.sample
+        id     = lambda wc: wc.sample,
+        group  = lambda wc: SAMPLE2GROUP[wc.sample],
     shell:
         r"""
         mkdir -p {params.outdir}
@@ -254,7 +255,7 @@ rule run_ichorCNA:
         Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/runIchorCNA.R \
           --id          {params.id} \
           --WIG         {input.wig} \
-          --ploidy      "c(2,3)" \
+          --ploidy      {'"c(2)"' if params.group in ['group3', 'group4'] else '"c(2,3)"'} \
           --normal      "{params.normal}" \
           --maxCN       7 \
           --gcWig       {input.gc} \

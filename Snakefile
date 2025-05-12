@@ -1,4 +1,5 @@
 SAMPLES = [f"SHi26-{i}" for i in range(1, 13)]
+NORMAL_SAMPLES = [f"SHi26-{i}" for i in range(3, 7)]
 
 REF_FASTA = "/mnt/speedy/aboylan/ctDNA_2025/ref_genome_mm39/mm39.simple.fa"
 GC_WIG = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/gc_mm39_1000kb.wig"
@@ -9,8 +10,10 @@ GENMAP_RAW = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/
 GENMAP_FILTERED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/100bp_E2.filtered.bedgraph"
 WINDOWS_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/windows_1Mb.bed"
 BINNED_MAP_BED = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/genmap_raw/mappability_1Mb.bed"
+MAP_WIG = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ref/map_mm39_1000kb.wig"
 
-
+NORMAL_WIG_LIST = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/normal_wig_files.txt"
+PON_OUT = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/pon_output/ichorCNA_PON.rds"
 
 rule all:
     input:
@@ -21,7 +24,10 @@ rule all:
         GENMAP_RAW,
         GENMAP_FILTERED,
         WINDOWS_BED,
-        BINNED_MAP_BED
+        BINNED_MAP_BED,
+        MAP_WIG,
+        NORMAL_WIG_LIST,
+        PON_OUT
 
 # Run readCounter on each sample's deduplicated BAM
 rule readcounter:
@@ -55,16 +61,21 @@ rule gccounter:
 
 rule get_centromeres:
     output:
-        txt=CENTROMERE_TXT
+        txt = CENTROMERE_TXT
     shell:
         """
         mkdir -p $(dirname {output.txt})
-        curl -s "http://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/gap.txt.gz" \
-          | gunzip -c \
-          | awk -F'\\t' '$8=="centromere" {{print $2"\\t"$3"\\t"$4"\\tcentromere"}}' > {output.txt}
+        (
+          # header line ─ four tab‑separated columns
+          echo -e "Chr\tStart\tEnd\tGapType"
+          curl -s "http://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/gap.txt.gz" \
+            | gunzip -c \
+            | awk -F'\\t' '$8=="centromere" {{print $2"\\t"$3"\\t"$4"\\tcentromere"}}'
+        ) > {output.txt}
+
+        # drop any leading "chr" strings
         sed -i 's/^chr//' {output.txt}
         """
-
 
 rule genmap_index:
     input:
@@ -111,13 +122,15 @@ rule genmap_filter_canonical:
 
 rule make_windows_1Mb:
     input:
-        bed = GENMAP_FILTERED
+        fasta = REF_FASTA
     output:
         bed = WINDOWS_BED
     shell:
         """
-        cut -f1,3 {input.bed} \
-          | awk '{{len[$1]<$2?len[$1]=$2:1}} END{{for(c in len) print c"\\t"len[c]}}' \
+        # build chrom.sizes from the .fai index
+        samtools faidx {input.fasta}
+        cut -f1,2 {input.fasta}.fai \
+          | grep -E '^(1[0-9]|[1-9]|X|Y)\t' \
           | sort -k1,1 -k2,2n > chrom.sizes
 
         bedtools makewindows -g chrom.sizes -w 1000000 > {output.bed}
@@ -137,6 +150,53 @@ rule bin_mappability_1Mb:
           > {output.bed}
         """
 
+rule bed_to_wig_mappability:
+    input:
+        bed = BINNED_MAP_BED
+    output:
+        wig = MAP_WIG
+    shell:
+        """
+        awk 'BEGIN{{chrom=""}}
+             {{
+               if ($1!=chrom) {{
+                 print "fixedStep chrom="$1" start=1 step=1000000 span=1000000";
+                 chrom=$1
+               }}
+               print $4
+             }}' {input.bed} > {output.wig}
+        """
 
+rule list_normal_wig_files:
+    input:
+        expand("/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/wig_output/{sample}.wig", sample=NORMAL_SAMPLES)
+    output:
+        list = NORMAL_WIG_LIST
+    shell:
+        """
+        ls {input} > {output.list}
+        """
 
+rule create_pon:
+    input:
+        filelist   = NORMAL_WIG_LIST,
+        gcwig      = GC_WIG,
+        mapwig     = MAP_WIG,
+        centromere = CENTROMERE_TXT
+    output:
+        pon = PON_OUT
+    shell:
+        """
+        mkdir -p $(dirname {output.pon})
+
+        Rscript /mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichorCNA/scripts/createPanelOfNormals.R \
+          --filelist    {input.filelist} \
+          --gcWig       {input.gcwig} \
+          --centromere  {input.centromere} \
+          --outfile     {output.pon} \
+          --genomeStyle NCBI \
+          --method median \
+          --chrs 'c(1:19,"X","Y")' \
+          --chrNormalize 'c(1:19)'
+        """
 

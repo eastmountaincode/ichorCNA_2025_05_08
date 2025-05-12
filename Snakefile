@@ -247,7 +247,6 @@ rule run_ichorCNA:
         normal = lambda wc: NORMAL_GRID[SAMPLE2GROUP[wc.sample]],
         outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
         id     = lambda wc: wc.sample
-    threads: 80
     shell:
         r"""
         mkdir -p {params.outdir}

@@ -249,8 +249,8 @@ rule run_ichorCNA:
     	id     = lambda wc: wc.sample,
     	group  = lambda wc: SAMPLE2GROUP[wc.sample],
     	ploidy = lambda wc: '"c(2)"' if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(2,3)"',
-    	est_normal = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
-    	est_ploidy = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
+    	est_normal = lambda wc: "True" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
+    	est_ploidy = lambda wc: "True" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
     	est_sc = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
     	sc_states = lambda wc: "NULL" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(1,3)"'
 

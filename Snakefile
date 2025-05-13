@@ -19,19 +19,14 @@ PON_RDS   = PON_BASE + "_median.rds"
 PON_TXT   = PON_BASE + "_median.txt"
 
 SAMPLE2GROUP = {
-    # gDNA, untreated            (group1)
     "SHi26-1":  "group1",
-    "SHi26-2":  "group1",
-    # gDNA‑like cfDNA, +drug     (group2)
-    "SHi26-3":  "group2",
-    "SHi26-4":  "group2",
-    # healthy plasma, ±drug      (groups3 & 4)
-    "SHi26-5":  "group3",
+    "SHi26-2":  "group2",
+    "SHi26-3":  "group3",
+    "SHi26-4":  "group3",
+    "SHi26-5":  "group4",
     "SHi26-6":  "group4",
-    # tumour plasma, vehicle     (group5)
     "SHi26-7":  "group5",
     "SHi26-8":  "group5",
-    # tumour plasma, +drug       (group6)
     "SHi26-9":  "group6",
     "SHi26-10": "group6",
     "SHi26-11": "group6",

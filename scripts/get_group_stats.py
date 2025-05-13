@@ -6,10 +6,10 @@ output_file = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/reports/ichorC
 # Define group membership based on sample ID
 sample_to_group = {
     "SHi26-1":  "group1",
-    "SHi26-2":  "group1",
-    "SHi26-3":  "group2",
-    "SHi26-4":  "group2",
-    "SHi26-5":  "group3",
+    "SHi26-2":  "group2",
+    "SHi26-3":  "group3",
+    "SHi26-4":  "group3",
+    "SHi26-5":  "group4",
     "SHi26-6":  "group4",
     "SHi26-7":  "group5",
     "SHi26-8":  "group5",

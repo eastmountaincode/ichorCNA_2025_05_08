@@ -269,8 +269,6 @@ rule run_ichorCNA:
       	--estimatePloidy       {params.est_ploidy} \
       	--estimateScPrevalence {params.est_sc} \
       	--scStates    {params.sc_states} \
-      	--txnE        0.99999 \
-      	--txnStrength 100000 \
       	--outDir      {params.outdir}
     	"""
 

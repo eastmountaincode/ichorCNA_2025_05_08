@@ -38,8 +38,8 @@ NORMAL_GRID = {
     "group2": 'c(0.02,0.05,0.1)',
     "group3": 'c(0.97)',
     "group4": 'c(0.97)',
-    "group5": 'c(0.8,0.85,0.9)',
-    "group6": 'c(0.8,0.85,0.9)',
+    "group5": 'c(0.85)',
+    "group6": 'c(0.85)',
 }
 
 rule all:
@@ -243,7 +243,7 @@ rule run_ichorCNA:
     	outdir = "/mnt/speedy/aboylan/ctDNA_2025/ichorCNA_2025_05_07/ichor_out",
     	id     = lambda wc: wc.sample,
     	group  = lambda wc: SAMPLE2GROUP[wc.sample],
-    	ploidy = lambda wc: '"c(2)"' if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(2,3)"',
+    	ploidy = lambda wc: '"c(2)"' if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else '"c(3)"',
     	est_normal = lambda wc: "True" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
     	est_ploidy = lambda wc: "True" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
     	est_sc = lambda wc: "False" if SAMPLE2GROUP[wc.sample] in ["group3", "group4"] else "True",
